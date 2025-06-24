@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stock Chart Viewer</title>
+</head>
+<body>
+  <h1>Stock/Crypto Chart Viewer</h1>
+  <div id="chartContainer" style="height:600px;"></div>
+
+  <script src="https://s3.tradingview.com/tv.js"></script>
+  <script>
+    function getURLParam(param) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(param);
+    }
+
+    function loadChart(ticker) {
+      if (!ticker) return;
+      new TradingView.widget({
+        container_id: "chartContainer",
+        symbol: ticker.toUpperCase(),
+        interval: "D",
+        theme: "light",
+        style: "1",
+        locale: "en",
+        toolbar_bg: "#f1f3f6",
+        allow_symbol_change: true,
+        width: "100%",
+        height: "600"
+      });
+    }
+
+    window.onload = function() {
+      const ticker = getURLParam("ticker");
+      if (ticker) loadChart(ticker);
+    };
+  </script>
+</body>
+</html>
