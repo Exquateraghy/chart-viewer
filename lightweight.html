@@ -42,13 +42,24 @@
       const candles = transformToCandles(rawData);
 
       const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
-        width: window.innerWidth,
-        height: 600,
-        timeScale: {
-          timeVisible: true,
-          secondsVisible: false,
-        }
-      });
+  width: window.innerWidth,
+  height: 600,
+  timeScale: {
+    timeVisible: true,
+    secondsVisible: false,
+    tickMarkFormatter: time => {
+      const date = new Date(time * 1000);
+      return date.toISOString().slice(0, 10);
+    }
+  },
+  localization: {
+    timeFormatter: time => {
+      const date = new Date(time * 1000);
+      return date.toISOString().slice(0, 10);
+    }
+  }
+});
+
 
       const candleSeries = chart.addCandlestickSeries();
       candleSeries.setData(candles);
