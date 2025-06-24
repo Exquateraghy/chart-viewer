@@ -50,22 +50,23 @@
 }
 
 
-    function transformDataToCandlesticks(rawData) {
-      if (!rawData || !rawData.chart || !rawData.chart.result || !rawData.chart.result[0]) return [];
+   function transformDataToCandlesticks(rawData) {
+  if (!rawData || !rawData.chart || !rawData.chart.result || !rawData.chart.result[0]) return [];
 
-      const timestamps = rawData.chart.result[0].timestamp;
-      const ohlc = rawData.chart.result[0].indicators.quote[0];
+  const timestamps = rawData.chart.result[0].timestamp;
+  const ohlc = rawData.chart.result[0].indicators.quote[0];
 
-      if (!timestamps || !ohlc || !ohlc.open) return [];
+  if (!timestamps || !ohlc || !ohlc.open) return [];
 
-      return timestamps.map((ts, index) => ({
-        time: new Date(ts * 1000).toISOString().split('T')[0] + 'T' + new Date(ts * 1000).toISOString().split('T')[1].slice(0, 5),
-        open: ohlc.open[index],
-        high: ohlc.high[index],
-        low: ohlc.low[index],
-        close: ohlc.close[index]
-      })).filter(candle => candle.open && candle.high && candle.low && candle.close);
-    }
+  return timestamps.map((ts, index) => ({
+    time: ts,  // Use Unix timestamp for intraday charts
+    open: ohlc.open[index],
+    high: ohlc.high[index],
+    low: ohlc.low[index],
+    close: ohlc.close[index]
+  })).filter(candle => candle.open && candle.high && candle.low && candle.close);
+}
+
 
     async function loadChart(ticker) {
       const container = document.getElementById('chartContainer');
