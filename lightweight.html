@@ -5,7 +5,10 @@
   <title>Yahoo Finance Daily Chart - Lightweight Charts</title>
   <style>
     html, body, #chartContainer {
-      margin: 0; padding: 0; height: 100vh; width: 100vw;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
       background-color: #fff;
       font-family: "Trebuchet MS", Tahoma, Verdana, Arial, sans-serif;
       color: #000;
@@ -15,32 +18,24 @@
 <body>
   <div id="chartContainer"></div>
 
-  <!-- Load Lightweight Charts library first -->
+  <!-- Load Lightweight Charts library -->
   <script src="https://unpkg.com/lightweight-charts@3.9.1/dist/lightweight-charts.standalone.production.js"></script>
 
   <script>
     const apiHost = "apidojo-yahoo-finance-v1.p.rapidapi.com";
     const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";  // Replace with your RapidAPI key
 
-    // Fetch daily candle data for the past 1 month
-   async function fetchDailyData(symbol) {
-  const url = `https://${apiHost}/stock/v3/get-chart?symbol=${encodeURIComponent(symbol)}&interval=1d&range=12mo&region=US`;
+    // Fetch daily candle data for the past 12 months
+    async function fetchDailyData(symbol) {
+      const url = `https://${apiHost}/stock/v3/get-chart?symbol=${encodeURIComponent(symbol)}&interval=1d&range=12mo&region=US`;
 
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "X-RapidAPI-Host": apiHost,
-      "X-RapidAPI-Key": apiKey,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  return response.json();
-}
-
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "X-RapidAPI-Host": apiHost,
+          "X-RapidAPI-Key": apiKey,
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
