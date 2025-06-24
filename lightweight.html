@@ -15,12 +15,14 @@
 <body>
   <div id="chartContainer"></div>
 
+  <!-- Load Lightweight Charts library first -->
   <script src="https://unpkg.com/lightweight-charts@3.9.1/dist/lightweight-charts.standalone.production.js"></script>
+
   <script>
     const apiHost = "apidojo-yahoo-finance-v1.p.rapidapi.com";
-    const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";  // <-- Replace this with your actual RapidAPI key
+    const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";  // Replace with your RapidAPI key
 
-    // Fetch daily candle data from Yahoo Finance RapidAPI endpoint
+    // Fetch daily candle data for the past 1 month
     async function fetchDailyData(symbol) {
       const url = `https://${apiHost}/market/v2/get-chart?region=US&symbol=${encodeURIComponent(symbol)}&interval=1d&range=1mo`;
 
@@ -36,11 +38,10 @@
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      return data;
+      return response.json();
     }
 
-    // Convert API data to lightweight-charts format
+    // Convert API response to lightweight-charts format
     function parseApiData(response) {
       const result = response.chart.result[0];
       const timestamps = result.timestamp;
@@ -60,7 +61,7 @@
       });
     }
 
-    // Initialize chart with light theme
+    // Create chart with light theme and daily candlesticks
     function createChart(data) {
       const chartOptions = {
         width: window.innerWidth,
@@ -110,10 +111,10 @@
       });
     }
 
-    // Main function: fetch and render
+    // Main entrypoint
     async function main() {
       try {
-        const symbol = "AAPL"; // change ticker here if needed
+        const symbol = "AAPL"; // Change ticker here if needed
         const apiData = await fetchDailyData(symbol);
         const chartData = parseApiData(apiData);
         createChart(chartData);
