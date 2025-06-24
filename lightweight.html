@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stock Chart Viewer - Lightweight Charts + Yahoo Finance API</title>
+  <style>
+    #chartContainer {
+      width: 100%;
+      height: 600px;
+    }
+  </style>
+</head>
+<body>
+  <div id="chartContainer"></div>
+
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+
+  <script>
+    function getURLParam(param) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(param);
+    }
+
+    async function fetchYahooFinanceData(ticker) {
+      const url = `https://yfapi.net/v8/finance/chart/${ticker}?interval=1d&range=1mo`;
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'x-api-key': 'b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4',
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error fetching Yahoo Finance data:', error);
+        return null;
+      }
+    }
+
+    function transformDataToCandlesticks(rawData) {
+      if (!rawData || !rawData.chart || !rawData.chart.result) return [];
+
+      const result = rawData.chart.result[0];
+      const timestamps = result.timestamp;
+      const quotes = result.indicators.quote[0];
+
+      // Compose candlestick data array
+      const candles = timestamps.map((timestamp, index) => {
+        const date = new Date(timestamp * 1000);
+        // Format to yyyy-mm-dd
+        const timeStr = date.toISOString().split('T')[0];
+
+        return {
+          time: timeStr,
+          open: quotes.open[index],
+          high: quotes.high[index],
+          low: quotes.low[index],
+          close: quotes.close[index]
+        };
+      });
+
+      return candles;
+    }
+
+    async function loadChart(ticker) {
+      const container = document.getElementById('chartContainer');
+
+      if (!ticker) {
+        container.innerText = 'Please provide a ticker in the URL, e.g., ?ticker=AAPL';
+        return;
+      }
+
+      container.innerText = 'Loading chart data for ' + ticker.toUpperCase() + ' ...';
+
+      const rawData = await fetchYahooFinanceData(ticker);
+
+      if (!rawData) {
+        container.innerText = 'Failed to load data for ticker: ' + ticker.toUpperCase();
+        return;
+      }
+
+      const candlestickData = transformDataToCandlesticks(rawData);
+
+      if (candlestickData.length === 0) {
+        container.innerText = 'No data available for ticker: ' + ticker.toUpperCase();
+        return;
+      }
+
+      // Clear loading text
+      container.innerText = '';
+
+      const chart = LightweightCharts.createChart(container, {
+        width: document.body.clientWidth,
+        height: 600,
+        layout: {
+          backgroundColor: '#ffffff',
+          textColor: '#000',
+        },
+        grid: {
+          vertLines: {
+            color: '#eee',
+          },
+          horzLines: {
+            color: '#eee',
+          },
+        },
+        crosshair: {
+          mode: LightweightCharts.CrosshairMode.Normal,
+        },
+        rightPriceScale: {
+          borderColor: '#ccc',
+        },
+        timeScale: {
+          borderColor: '#ccc',
+        },
+      });
+
+      const candleSeries = chart.addCandlestickSeries();
+      candleSeries.setData(candlestickData);
+    }
+
+    window.onload = () => {
+      const ticker = getURLParam('ticker');
+      loadChart(ticker);
+    };
+  </script>
+</body>
+</html>
