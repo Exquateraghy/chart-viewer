@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Yahoo Finance Daily Chart - Lightweight Charts</title>
   <style>
     html, body, #chartContainer {
@@ -18,14 +18,13 @@
 <body>
   <div id="chartContainer"></div>
 
-  <!-- Load Lightweight Charts library -->
   <script src="https://unpkg.com/lightweight-charts@3.9.1/dist/lightweight-charts.standalone.production.js"></script>
 
   <script>
     const apiHost = "apidojo-yahoo-finance-v1.p.rapidapi.com";
-    const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";  // Replace with your RapidAPI key
+    const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";  // Replace with your valid RapidAPI key
 
-    // Fetch daily candle data for the past 12 months
+    // Fetch daily candle data
     async function fetchDailyData(symbol) {
       const url = `https://${apiHost}/stock/v3/get-chart?symbol=${encodeURIComponent(symbol)}&interval=1d&range=12mo&region=US`;
 
@@ -52,7 +51,7 @@
 
       return timestamps.map((ts, i) => {
         const date = new Date(ts * 1000);
-        const timeStr = date.toISOString().slice(0, 10); // Format: YYYY-MM-DD
+        const timeStr = date.toISOString().slice(0, 10); // YYYY-MM-DD
 
         return {
           time: timeStr,
@@ -64,9 +63,9 @@
       });
     }
 
-    // Create chart with light theme and daily candlesticks
+    // Create the chart
     function createChart(data) {
-      const chartOptions = {
+      const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
         width: window.innerWidth,
         height: window.innerHeight,
         layout: {
@@ -88,21 +87,12 @@
           timeVisible: true,
           secondsVisible: false,
         },
-        localization: {
-          dateFormat: 'yyyy-MM-dd',
-        },
-      };
-
-      const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), chartOptions);
+      });
 
       const candlestickSeries = chart.addCandlestickSeries({
         upColor: '#26a69a',
         downColor: '#ef5350',
         borderVisible: true,
-        borderColor: '#374351',
-        wickColor: '#737375',
-        borderUpColor: '#26a69a',
-        borderDownColor: '#ef5350',
         wickUpColor: '#26a69a',
         wickDownColor: '#ef5350',
       });
@@ -110,14 +100,17 @@
       candlestickSeries.setData(data);
 
       window.addEventListener('resize', () => {
-        chart.applyOptions({ width: window.innerWidth, height: window.innerHeight });
+        chart.applyOptions({
+          width: window.innerWidth,
+          height: window.innerHeight,
+        });
       });
     }
 
-    // Main entrypoint
+    // Main
     async function main() {
       try {
-        const symbol = "AAPL"; // Change ticker here if needed
+        const symbol = "AAPL";  // Change ticker if needed
         const apiData = await fetchDailyData(symbol);
         const chartData = parseApiData(apiData);
         createChart(chartData);
