@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Daily Chart with Date Only</title>
+  <title>Yahoo Finance Daily Chart - Lightweight Charts</title>
   <style>
-    #chartContainer {
-      width: 100%;
-      height: 600px;
+    html, body, #chartContainer {
+      margin: 0; padding: 0; height: 100vh; width: 100vw;
+      background-color: #fff;
+      font-family: "Trebuchet MS", Tahoma, Verdana, Arial, sans-serif;
+      color: #000;
     }
   </style>
 </head>
@@ -15,100 +17,112 @@
 
   <script src="https://unpkg.com/lightweight-charts@3.9.1/dist/lightweight-charts.standalone.production.js"></script>
   <script>
-    const apiKey = 'b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4'; // replace with your RapidAPI key
-    const symbol = 'AAPL';
-    const region = 'US';
+    const apiHost = "apidojo-yahoo-finance-v1.p.rapidapi.com";
+    const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";  // <-- Replace this with your actual RapidAPI key
 
-    async function fetchDailyData(symbol, region) {
-      const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-chart?symbol=${symbol}&region=${region}&interval=1d&range=6mo`;
+    // Fetch daily candle data from Yahoo Finance RapidAPI endpoint
+    async function fetchDailyData(symbol) {
+      const url = `https://${apiHost}/market/v2/get-chart?region=US&symbol=${encodeURIComponent(symbol)}&interval=1d&range=1mo`;
 
       const response = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'X-RapidAPI-Key': apiKey,
-          'X-RapidAPI-Host': 'apidojo-yahoo-finance-v1.p.rapidapi.com',
+          "X-RapidAPI-Host": apiHost,
+          "X-RapidAPI-Key": apiKey,
         },
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
       const data = await response.json();
       return data;
     }
 
-    function transformData(rawData) {
-      const quotes = rawData.chart.result[0].indicators.quote[0];
-      const timestamps = rawData.chart.result[0].timestamp;
+    // Convert API data to lightweight-charts format
+    function parseApiData(response) {
+      const result = response.chart.result[0];
+      const timestamps = result.timestamp;
+      const quote = result.indicators.quote[0];
 
-      const chartData = [];
+      return timestamps.map((ts, i) => {
+        const date = new Date(ts * 1000);
+        const timeStr = date.toISOString().slice(0, 10); // Format: YYYY-MM-DD
 
-      for (let i = 0; i < timestamps.length; i++) {
-        // Yahoo timestamps are in seconds
-        // For daily data, the timestamp corresponds to the start of the trading day (midnight UTC)
-        // Lightweight Charts expects time as 'yyyy-mm-dd' for daily data (business day format)
-        const date = new Date(timestamps[i] * 1000);
-        const yyyy = date.getUTCFullYear();
-        const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-        const dd = String(date.getUTCDate()).padStart(2, '0');
-        const timeStr = `${yyyy}-${mm}-${dd}`;
-
-        // Only push if OHLC values are defined
-        if (
-          quotes.open[i] !== null &&
-          quotes.high[i] !== null &&
-          quotes.low[i] !== null &&
-          quotes.close[i] !== null
-        ) {
-          chartData.push({
-            time: timeStr,
-            open: quotes.open[i],
-            high: quotes.high[i],
-            low: quotes.low[i],
-            close: quotes.close[i],
-          });
-        }
-      }
-      return chartData;
+        return {
+          time: timeStr,
+          open: quote.open[i],
+          high: quote.high[i],
+          low: quote.low[i],
+          close: quote.close[i],
+        };
+      });
     }
 
-    async function loadChart() {
-      const rawData = await fetchDailyData(symbol, region);
-      const data = transformData(rawData);
-
-      const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
+    // Initialize chart with light theme
+    function createChart(data) {
+      const chartOptions = {
         width: window.innerWidth,
-        height: 600,
+        height: window.innerHeight,
         layout: {
           backgroundColor: '#ffffff',
-          textColor: '#000',
+          textColor: '#000000',
         },
         grid: {
-          vertLines: {
-            color: '#eee',
-          },
-          horzLines: {
-            color: '#eee',
-          },
+          vertLines: { color: '#e0e3eb' },
+          horzLines: { color: '#e0e3eb' },
+        },
+        crosshair: {
+          mode: LightweightCharts.CrosshairMode.Normal,
+        },
+        rightPriceScale: {
+          borderColor: '#cccccc',
         },
         timeScale: {
+          borderColor: '#cccccc',
           timeVisible: true,
           secondsVisible: false,
-          tickMarkFormatter: (time, tickMarkType, locale) => {
-            // time here is 'yyyy-mm-dd' string, so just return as is
-            return time;
-          },
         },
         localization: {
-          timeFormatter: (time) => {
-            // time here is 'yyyy-mm-dd' string, just return it to show date only
-            return time;
-          },
+          dateFormat: 'yyyy-MM-dd',
         },
+      };
+
+      const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), chartOptions);
+
+      const candlestickSeries = chart.addCandlestickSeries({
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderVisible: true,
+        borderColor: '#374351',
+        wickColor: '#737375',
+        borderUpColor: '#26a69a',
+        borderDownColor: '#ef5350',
+        wickUpColor: '#26a69a',
+        wickDownColor: '#ef5350',
       });
 
-      const candlestickSeries = chart.addCandlestickSeries();
       candlestickSeries.setData(data);
+
+      window.addEventListener('resize', () => {
+        chart.applyOptions({ width: window.innerWidth, height: window.innerHeight });
+      });
     }
 
-    window.onload = loadChart;
+    // Main function: fetch and render
+    async function main() {
+      try {
+        const symbol = "AAPL"; // change ticker here if needed
+        const apiData = await fetchDailyData(symbol);
+        const chartData = parseApiData(apiData);
+        createChart(chartData);
+      } catch (err) {
+        console.error('Error fetching or rendering data:', err);
+      }
+    }
+
+    main();
   </script>
 </body>
 </html>
