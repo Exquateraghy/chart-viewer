@@ -18,12 +18,12 @@
 <body>
   <div id="chartContainer"></div>
 
-  <!-- Correct lightweight-charts CDN for global use -->
-  <script src="https://unpkg.com/lightweight-charts@3.9.1/dist/lightweight-charts.production.js"></script>
+  <!-- Correct lightweight-charts global CDN -->
+  <script src="https://unpkg.com/lightweight-charts@3.9.1/dist/lightweight-charts.js"></script>
 
   <script>
     const apiHost = "apidojo-yahoo-finance-v1.p.rapidapi.com";
-    const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";  // Replace with valid RapidAPI key
+    const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";
 
     async function fetchDailyData(symbol) {
       const url = `https://${apiHost}/stock/v3/get-chart?symbol=${encodeURIComponent(symbol)}&interval=1d&range=12mo&region=US`;
@@ -48,16 +48,13 @@
       const timestamps = result.timestamp;
       const quote = result.indicators.quote[0];
 
-      return timestamps.map((ts, i) => {
-        const date = new Date(ts * 1000);
-        return {
-          time: date.toISOString().slice(0, 10),
-          open: quote.open[i],
-          high: quote.high[i],
-          low: quote.low[i],
-          close: quote.close[i],
-        };
-      });
+      return timestamps.map((ts, i) => ({
+        time: new Date(ts * 1000).toISOString().slice(0, 10),
+        open: quote.open[i],
+        high: quote.high[i],
+        low: quote.low[i],
+        close: quote.close[i],
+      }));
     }
 
     function createChart(data) {
