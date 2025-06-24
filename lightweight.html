@@ -21,52 +21,44 @@
     }
 
     async function fetchYahooFinanceData(ticker) {
-      const url = `https://yfapi.net/v8/finance/chart/${ticker}?interval=1d&range=1mo`;
-      try {
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'x-api-key': 'b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4',
-            'Accept': 'application/json'
-          }
-        });
+  const url = `https://yh-finance.p.rapidapi.com/stock/v3/get-historical-data?symbol=${ticker}&region=US`;
 
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data;
-      } catch (error) {
-        console.error('Error fetching Yahoo Finance data:', error);
-        return null;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-RapidAPI-Key': 'b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4',
+        'X-RapidAPI-Host': 'yh-finance.p.rapidapi.com'
       }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
     }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching Yahoo Finance data:', error);
+    return null;
+  }
+}
+
 
     function transformDataToCandlesticks(rawData) {
-      if (!rawData || !rawData.chart || !rawData.chart.result) return [];
+       if (!rawData || !rawData.prices) return [];
 
-      const result = rawData.chart.result[0];
-      const timestamps = result.timestamp;
-      const quotes = result.indicators.quote[0];
+  return rawData.prices
+    .filter(p => p.open && p.high && p.low && p.close) // filter out incomplete data
+    .map(p => ({
+      time: new Date(p.date * 1000).toISOString().split('T')[0],
+      open: p.open,
+      high: p.high,
+      low: p.low,
+      close: p.close
+    }));
+}
 
-      // Compose candlestick data array
-      const candles = timestamps.map((timestamp, index) => {
-        const date = new Date(timestamp * 1000);
-        // Format to yyyy-mm-dd
-        const timeStr = date.toISOString().split('T')[0];
-
-        return {
-          time: timeStr,
-          open: quotes.open[index],
-          high: quotes.high[index],
-          low: quotes.low[index],
-          close: quotes.close[index]
-        };
-      });
-
-      return candles;
-    }
 
     async function loadChart(ticker) {
       const container = document.getElementById('chartContainer');
