@@ -21,7 +21,7 @@
     }
 
     async function fetchYahooFinanceData(ticker) {
-      const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v3/get-historical-data?symbol=${ticker}&region=US`;
+      const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-chart?symbol=${ticker}&interval=5m&range=1d&region=US`;
 
       try {
         const response = await fetch(url, {
@@ -45,17 +45,20 @@
     }
 
     function transformDataToCandlesticks(rawData) {
-      if (!rawData || !rawData.prices) return [];
+      if (!rawData || !rawData.chart || !rawData.chart.result || !rawData.chart.result[0]) return [];
 
-      return rawData.prices
-        .filter(p => p.open && p.high && p.low && p.close)
-        .map(p => ({
-          time: new Date(p.date * 1000).toISOString().split('T')[0],
-          open: p.open,
-          high: p.high,
-          low: p.low,
-          close: p.close
-        }));
+      const timestamps = rawData.chart.result[0].timestamp;
+      const ohlc = rawData.chart.result[0].indicators.quote[0];
+
+      if (!timestamps || !ohlc || !ohlc.open) return [];
+
+      return timestamps.map((ts, index) => ({
+        time: new Date(ts * 1000).toISOString().split('T')[0] + 'T' + new Date(ts * 1000).toISOString().split('T')[1].slice(0, 5),
+        open: ohlc.open[index],
+        high: ohlc.high[index],
+        low: ohlc.low[index],
+        close: ohlc.close[index]
+      })).filter(candle => candle.open && candle.high && candle.low && candle.close);
     }
 
     async function loadChart(ticker) {
