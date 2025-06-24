@@ -21,44 +21,42 @@
     }
 
     async function fetchYahooFinanceData(ticker) {
-  const url = `https://yh-finance.p.rapidapi.com/stock/v3/get-historical-data?symbol=${ticker}&region=US`;
+      const url = `https://yh-finance.p.rapidapi.com/stock/v3/get-historical-data?symbol=${ticker}&region=US`;
 
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': 'b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4',
-        'X-RapidAPI-Host': 'yh-finance.p.rapidapi.com'
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'X-RapidAPI-Key': 'b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4',
+            'X-RapidAPI-Host': 'yh-finance.p.rapidapi.com'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error fetching Yahoo Finance data:', error);
+        return null;
       }
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
     }
 
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching Yahoo Finance data:', error);
-    return null;
-  }
-}
-
-
     function transformDataToCandlesticks(rawData) {
-       if (!rawData || !rawData.prices) return [];
+      if (!rawData || !rawData.prices) return [];
 
-  return rawData.prices
-    .filter(p => p.open && p.high && p.low && p.close) // filter out incomplete data
-    .map(p => ({
-      time: new Date(p.date * 1000).toISOString().split('T')[0],
-      open: p.open,
-      high: p.high,
-      low: p.low,
-      close: p.close
-    }));
-}
-
+      return rawData.prices
+        .filter(p => p.open && p.high && p.low && p.close) // ensure valid data points
+        .map(p => ({
+          time: new Date(p.date * 1000).toISOString().split('T')[0],
+          open: p.open,
+          high: p.high,
+          low: p.low,
+          close: p.close
+        }));
+    }
 
     async function loadChart(ticker) {
       const container = document.getElementById('chartContainer');
@@ -84,7 +82,6 @@
         return;
       }
 
-      // Clear loading text
       container.innerText = '';
 
       const chart = LightweightCharts.createChart(container, {
