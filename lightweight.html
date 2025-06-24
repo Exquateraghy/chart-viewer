@@ -24,7 +24,6 @@
     const apiHost = "apidojo-yahoo-finance-v1.p.rapidapi.com";
     const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";  // Replace with your valid RapidAPI key
 
-    // Fetch daily candle data
     async function fetchDailyData(symbol) {
       const url = `https://${apiHost}/stock/v3/get-chart?symbol=${encodeURIComponent(symbol)}&interval=1d&range=12mo&region=US`;
 
@@ -43,7 +42,6 @@
       return response.json();
     }
 
-    // Convert API response to lightweight-charts format
     function parseApiData(response) {
       const result = response.chart.result[0];
       const timestamps = result.timestamp;
@@ -51,10 +49,8 @@
 
       return timestamps.map((ts, i) => {
         const date = new Date(ts * 1000);
-        const timeStr = date.toISOString().slice(0, 10); // YYYY-MM-DD
-
         return {
-          time: timeStr,
+          time: date.toISOString().slice(0, 10), // YYYY-MM-DD
           open: quote.open[i],
           high: quote.high[i],
           low: quote.low[i],
@@ -63,7 +59,6 @@
       });
     }
 
-    // Create the chart
     function createChart(data) {
       const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
         width: window.innerWidth,
@@ -107,10 +102,9 @@
       });
     }
 
-    // Main
     async function main() {
       try {
-        const symbol = "AAPL";  // Change ticker if needed
+        const symbol = "AAPL";
         const apiData = await fetchDailyData(symbol);
         const chartData = parseApiData(apiData);
         createChart(chartData);
