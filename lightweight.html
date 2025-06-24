@@ -23,16 +23,24 @@
     const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";  // Replace with your RapidAPI key
 
     // Fetch daily candle data for the past 1 month
-    async function fetchDailyData(symbol) {
-      const url = `https://${apiHost}/market/v2/get-chart?region=US&symbol=${encodeURIComponent(symbol)}&interval=1d&range=1mo`;
+   async function fetchDailyData(symbol) {
+  const url = `https://${apiHost}/stock/v3/get-chart?symbol=${encodeURIComponent(symbol)}&interval=1d&range=12mo&region=US`;
 
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "X-RapidAPI-Host": apiHost,
-          "X-RapidAPI-Key": apiKey,
-        },
-      });
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "X-RapidAPI-Host": apiHost,
+      "X-RapidAPI-Key": apiKey,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
