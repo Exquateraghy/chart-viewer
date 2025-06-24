@@ -1,78 +1,114 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Daily Stock Chart (Yahoo Finance + Lightweight Charts)</title>
+  <meta charset="UTF-8" />
+  <title>Daily Chart with Date Only</title>
   <style>
-    #chartContainer { width: 100%; height: 600px; }
+    #chartContainer {
+      width: 100%;
+      height: 600px;
+    }
   </style>
 </head>
 <body>
   <div id="chartContainer"></div>
-  <script src="https://unpkg.com/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js"></script>
+
+  <script src="https://unpkg.com/lightweight-charts@3.9.1/dist/lightweight-charts.standalone.production.js"></script>
   <script>
-    async function fetchDailyData(ticker) {
-      const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-chart?symbol=${ticker}&interval=1d&range=6mo&region=US`;
+    const apiKey = 'b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4'; // replace with your RapidAPI key
+    const symbol = 'AAPL';
+    const region = 'US';
+
+    async function fetchDailyData(symbol, region) {
+      const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-chart?symbol=${symbol}&region=${region}&interval=1d&range=6mo`;
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'X-RapidAPI-Key': 'b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4',  // replace with your key
-          'X-RapidAPI-Host': 'apidojo-yahoo-finance-v1.p.rapidapi.com'
-        }
+          'X-RapidAPI-Key': apiKey,
+          'X-RapidAPI-Host': 'apidojo-yahoo-finance-v1.p.rapidapi.com',
+        },
       });
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-      return response.json();
+
+      const data = await response.json();
+      return data;
     }
 
-    function transformToCandles(data) {
-      const result = data.chart.result[0];
-      const timestamps = result.timestamp;
-      const quote = result.indicators.quote[0];
-      return timestamps.map((t, i) => ({
-        time: t,
-        open: quote.open[i],
-        high: quote.high[i],
-        low: quote.low[i],
-        close: quote.close[i]
-      })).filter(c => c.open != null);
+    function transformData(rawData) {
+      const quotes = rawData.chart.result[0].indicators.quote[0];
+      const timestamps = rawData.chart.result[0].timestamp;
+
+      const chartData = [];
+
+      for (let i = 0; i < timestamps.length; i++) {
+        // Yahoo timestamps are in seconds
+        // For daily data, the timestamp corresponds to the start of the trading day (midnight UTC)
+        // Lightweight Charts expects time as 'yyyy-mm-dd' for daily data (business day format)
+        const date = new Date(timestamps[i] * 1000);
+        const yyyy = date.getUTCFullYear();
+        const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(date.getUTCDate()).padStart(2, '0');
+        const timeStr = `${yyyy}-${mm}-${dd}`;
+
+        // Only push if OHLC values are defined
+        if (
+          quotes.open[i] !== null &&
+          quotes.high[i] !== null &&
+          quotes.low[i] !== null &&
+          quotes.close[i] !== null
+        ) {
+          chartData.push({
+            time: timeStr,
+            open: quotes.open[i],
+            high: quotes.high[i],
+            low: quotes.low[i],
+            close: quotes.close[i],
+          });
+        }
+      }
+      return chartData;
     }
 
-    async function drawChart() {
-      const ticker = 'AAPL';
-      const rawData = await fetchDailyData(ticker);
-      const candles = transformToCandles(rawData);
+    async function loadChart() {
+      const rawData = await fetchDailyData(symbol, region);
+      const data = transformData(rawData);
 
       const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
-  width: window.innerWidth,
-  height: 600,
-  timeScale: {
-    timeVisible: true,
-    secondsVisible: false,
-    tickMarkFormatter: time => {
-      const date = new Date(time * 1000);
-      return date.toISOString().slice(0, 10);
-    }
-  },
-  localization: {
-    timeFormatter: time => {
-      const date = new Date(time * 1000);
-      return date.toISOString().slice(0, 10);
-    }
-  }
-});
-
-
-      const candleSeries = chart.addCandlestickSeries();
-      candleSeries.setData(candles);
-
-      window.addEventListener('resize', () => {
-        chart.applyOptions({ width: window.innerWidth });
+        width: window.innerWidth,
+        height: 600,
+        layout: {
+          backgroundColor: '#ffffff',
+          textColor: '#000',
+        },
+        grid: {
+          vertLines: {
+            color: '#eee',
+          },
+          horzLines: {
+            color: '#eee',
+          },
+        },
+        timeScale: {
+          timeVisible: true,
+          secondsVisible: false,
+          tickMarkFormatter: (time, tickMarkType, locale) => {
+            // time here is 'yyyy-mm-dd' string, so just return as is
+            return time;
+          },
+        },
+        localization: {
+          timeFormatter: (time) => {
+            // time here is 'yyyy-mm-dd' string, just return it to show date only
+            return time;
+          },
+        },
       });
+
+      const candlestickSeries = chart.addCandlestickSeries();
+      candlestickSeries.setData(data);
     }
 
-    drawChart().catch(e => {
-      document.getElementById('chartContainer').innerText = e.message;
-      console.error(e);
-    });
+    window.onload = loadChart;
   </script>
 </body>
 </html>
