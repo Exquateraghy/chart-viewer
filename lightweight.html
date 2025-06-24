@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Stock Chart Viewer - Lightweight Charts + Yahoo Finance API</title>
+  <title>Stock Chart Viewer - Lightweight Charts + Yahoo Finance API (Daily)</title>
   <style>
     #chartContainer {
       width: 100%;
       height: 600px;
+    }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
     }
   </style>
 </head>
@@ -14,8 +18,6 @@
 
   <script src="https://unpkg.com/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js"></script>
 
-
-
   <script>
     function getURLParam(param) {
       const params = new URLSearchParams(window.location.search);
@@ -23,50 +25,60 @@
     }
 
     async function fetchYahooFinanceData(ticker) {
-  const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-chart?symbol=${ticker}&interval=5m&range=1d&region=US`;
+      // Daily data, 6 months range
+      const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-chart?interval=1d&region=US&symbol=${ticker}&range=6mo`;
 
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': 'b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4',
-        'X-RapidAPI-Host': 'apidojo-yahoo-finance-v1.p.rapidapi.com'
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'X-RapidAPI-Key': 'b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4', // your key here
+            'X-RapidAPI-Host': 'apidojo-yahoo-finance-v1.p.rapidapi.com'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("Raw API response:", JSON.stringify(data)); // for debugging
+        return data;
+      } catch (error) {
+        console.error('Error fetching Yahoo Finance data:', error);
+        return null;
       }
-    });
-
-    const rawText = await response.text();
-    console.log('Raw API response:', rawText);
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
     }
 
-    const data = JSON.parse(rawText);
-    return data;
-  } catch (error) {
-    console.error('Error fetching Yahoo Finance data:', error);
-    return null;
-  }
-}
+    function transformDataToCandlesticks(rawData) {
+      if (
+        !rawData ||
+        !rawData.chart ||
+        !rawData.chart.result ||
+        !rawData.chart.result[0]
+      ) return [];
 
+      const result = rawData.chart.result[0];
+      const timestamps = result.timestamp;
+      const quote = result.indicators.quote[0];
 
-   function transformDataToCandlesticks(rawData) {
-  if (!rawData || !rawData.chart || !rawData.chart.result || !rawData.chart.result[0]) return [];
+      if (!timestamps || !quote || !quote.open) return [];
 
-  const timestamps = rawData.chart.result[0].timestamp;
-  const ohlc = rawData.chart.result[0].indicators.quote[0];
-
-  if (!timestamps || !ohlc || !ohlc.open) return [];
-
-  return timestamps.map((ts, index) => ({
-    time: ts,  // Use Unix timestamp for intraday charts
-    open: ohlc.open[index],
-    high: ohlc.high[index],
-    low: ohlc.low[index],
-    close: ohlc.close[index]
-  })).filter(candle => candle.open && candle.high && candle.low && candle.close);
-}
-
+      return timestamps
+        .map((ts, idx) => ({
+          time: ts, // Lightweight Charts accepts unix timestamp (seconds) for daily data
+          open: quote.open[idx],
+          high: quote.high[idx],
+          low: quote.low[idx],
+          close: quote.close[idx]
+        }))
+        .filter(candle =>
+          candle.open != null &&
+          candle.high != null &&
+          candle.low != null &&
+          candle.close != null
+        );
+    }
 
     async function loadChart(ticker) {
       const container = document.getElementById('chartContainer');
@@ -76,38 +88,34 @@
         return;
       }
 
-      container.innerText = 'Loading chart data for ' + ticker.toUpperCase() + ' ...';
+      container.innerText = `Loading daily chart data for ${ticker.toUpperCase()}...`;
 
       const rawData = await fetchYahooFinanceData(ticker);
 
       if (!rawData) {
-        container.innerText = 'Failed to load data for ticker: ' + ticker.toUpperCase();
+        container.innerText = `Failed to load data for ticker: ${ticker.toUpperCase()}`;
         return;
       }
 
       const candlestickData = transformDataToCandlesticks(rawData);
 
       if (candlestickData.length === 0) {
-        container.innerText = 'No data available for ticker: ' + ticker.toUpperCase();
+        container.innerText = `No data available for ticker: ${ticker.toUpperCase()}`;
         return;
       }
 
-      container.innerText = '';
+      container.innerText = ''; // Clear loading text
 
       const chart = LightweightCharts.createChart(container, {
-        width: document.body.clientWidth,
+        width: container.clientWidth,
         height: 600,
         layout: {
           backgroundColor: '#ffffff',
           textColor: '#000',
         },
         grid: {
-          vertLines: {
-            color: '#eee',
-          },
-          horzLines: {
-            color: '#eee',
-          },
+          vertLines: { color: '#eee' },
+          horzLines: { color: '#eee' },
         },
         crosshair: {
           mode: LightweightCharts.CrosshairMode.Normal,
@@ -117,11 +125,17 @@
         },
         timeScale: {
           borderColor: '#ccc',
+          timeVisible: true,
+          secondsVisible: false,
         },
       });
 
       const candleSeries = chart.addCandlestickSeries();
       candleSeries.setData(candlestickData);
+
+      window.addEventListener('resize', () => {
+        chart.applyOptions({ width: container.clientWidth });
+      });
     }
 
     window.onload = () => {
