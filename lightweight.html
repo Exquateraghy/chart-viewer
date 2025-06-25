@@ -2,7 +2,7 @@
 <html>
 <head>
   <title>Stock Chart Viewer</title>
-  <script src="https://unpkg.com/lightweight-charts@4.3.0/dist/lightweight-charts.standalone.production.min.js"></script>
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
   <style>
     body {
@@ -20,7 +20,7 @@
   <div id="chart"></div>
 
   <script>
-    const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";
+    const apiKey = "YOUR_API_KEY";
 
     function getURLParam(param) {
       const params = new URLSearchParams(window.location.search);
@@ -41,27 +41,19 @@
       const timestamps = json.chart.result[0].timestamp;
       const ohlc = json.chart.result[0].indicators.quote[0];
 
-      const candleData = timestamps.map((time, i) => ({
-        time: time,
+      return timestamps.map((time, i) => ({
+        time: Math.floor(time),
         open: ohlc.open[i],
         high: ohlc.high[i],
         low: ohlc.low[i],
         close: ohlc.close[i]
       }));
-
-      return candleData;
     }
 
     async function loadChart(ticker) {
-      const chart = LightweightCharts.createChart(document.getElementById('chart'), {
-        layout: {
-          background: { color: '#fff' },
-          textColor: '#000',
-        },
-        grid: {
-          vertLines: { color: '#eee' },
-          horzLines: { color: '#eee' }
-        },
+      const chart = window.LightweightCharts.createChart(document.getElementById('chart'), {
+        layout: { background: { color: '#fff' }, textColor: '#000' },
+        grid: { vertLines: { color: '#eee' }, horzLines: { color: '#eee' } },
         priceScale: { borderColor: '#d1d4dc' },
         timeScale: { borderColor: '#d1d4dc' }
       });
