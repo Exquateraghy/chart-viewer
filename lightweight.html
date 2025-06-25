@@ -1,78 +1,67 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Stock Chart Viewer</title>
-  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
-
+  <title>Daily Stock Chart (Yahoo Finance + Lightweight Charts)</title>
   <style>
-    body {
-      margin: 0;
-      background: #f1f3f6;
-      font-family: Arial, sans-serif;
-    }
-    #chart {
-      width: 100%;
-      height: 600px;
-    }
+    #chartContainer { width: 100%; height: 600px; }
   </style>
 </head>
 <body>
-  <div id="chart"></div>
-
+  <div id="chartContainer"></div>
+  <script src="https://unpkg.com/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js"></script>
   <script>
-    const apiKey = "YOUR_API_KEY";
-
-    function getURLParam(param) {
-      const params = new URLSearchParams(window.location.search);
-      return params.get(param);
-    }
-
-    async function fetchOHLC(ticker) {
-      const url = `https://yfapi.net/v8/finance/chart/${ticker}?range=1mo&interval=1d`;
-
+    async function fetchDailyData(ticker) {
+      const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-chart?symbol=${ticker}&interval=1d&range=6mo&region=US`;
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'x-api-key': apiKey
+          'X-RapidAPI-Key': 'b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4',  // replace with your key
+          'X-RapidAPI-Host': 'apidojo-yahoo-finance-v1.p.rapidapi.com'
+        }
+      });
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      return response.json();
+    }
+
+    function transformToCandles(data) {
+      const result = data.chart.result[0];
+      const timestamps = result.timestamp;
+      const quote = result.indicators.quote[0];
+      return timestamps.map((t, i) => ({
+        time: t,
+        open: quote.open[i],
+        high: quote.high[i],
+        low: quote.low[i],
+        close: quote.close[i]
+      })).filter(c => c.open != null);
+    }
+
+    async function drawChart() {
+      const ticker = 'AAPL';
+      const rawData = await fetchDailyData(ticker);
+      const candles = transformToCandles(rawData);
+
+      const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
+        width: window.innerWidth,
+        height: 600,
+        timeScale: {
+          timeVisible: true,
+          secondsVisible: false,
         }
       });
 
-      const json = await response.json();
-      const timestamps = json.chart.result[0].timestamp;
-      const ohlc = json.chart.result[0].indicators.quote[0];
+      const candleSeries = chart.addCandlestickSeries();
+      candleSeries.setData(candles);
 
-      return timestamps.map((time, i) => ({
-        time: Math.floor(time),
-        open: ohlc.open[i],
-        high: ohlc.high[i],
-        low: ohlc.low[i],
-        close: ohlc.close[i]
-      }));
-    }
-
-    async function loadChart(ticker) {
-      const chart = window.LightweightCharts.createChart(document.getElementById('chart'), {
-        layout: { background: { color: '#fff' }, textColor: '#000' },
-        grid: { vertLines: { color: '#eee' }, horzLines: { color: '#eee' } },
-        priceScale: { borderColor: '#d1d4dc' },
-        timeScale: { borderColor: '#d1d4dc' }
+      window.addEventListener('resize', () => {
+        chart.applyOptions({ width: window.innerWidth });
       });
-
-      const series = chart.addCandlestickSeries();
-
-      try {
-        const data = await fetchOHLC(ticker);
-        series.setData(data);
-      } catch (e) {
-        alert("Failed to load data for " + ticker);
-        console.error(e);
-      }
     }
 
-    window.onload = () => {
-      const ticker = getURLParam("ticker");
-      if (ticker) loadChart(ticker);
-    };
+    drawChart().catch(e => {
+      document.getElementById('chartContainer').innerText = e.message;
+      console.error(e);
+    });
   </script>
 </body>
 </html>
