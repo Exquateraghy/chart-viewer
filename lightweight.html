@@ -1,67 +1,119 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Daily Stock Chart (Yahoo Finance + Lightweight Charts)</title>
+  <meta charset="UTF-8">
+  <title>Yahoo Finance Daily Chart - Lightweight Charts</title>
   <style>
-    #chartContainer { width: 100%; height: 600px; }
+    html, body, #chartContainer {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      width: 100vw;
+      background-color: #fff;
+      font-family: "Trebuchet MS", Tahoma, Verdana, Arial, sans-serif;
+      color: #000;
+    }
   </style>
 </head>
 <body>
   <div id="chartContainer"></div>
-  <script src="https://unpkg.com/lightweight-charts@4.0.0/dist/lightweight-charts.standalone.production.js"></script>
+
+  <!-- Latest Stable Lightweight Charts (Global Access) -->
+  <script src="https://unpkg.com/lightweight-charts@4.3.0/dist/lightweight-charts.js"></script>
+
   <script>
-    async function fetchDailyData(ticker) {
-      const url = `https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-chart?symbol=${ticker}&interval=1d&range=6mo&region=US`;
+    const { createChart, CrosshairMode } = window.LightweightCharts;
+
+    const apiHost = "apidojo-yahoo-finance-v1.p.rapidapi.com";
+    const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";
+
+    async function fetchDailyData(symbol) {
+      const url = `https://${apiHost}/stock/v3/get-chart?symbol=${encodeURIComponent(symbol)}&interval=1d&range=12mo&region=US`;
+
       const response = await fetch(url, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'X-RapidAPI-Key': 'b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4',  // replace with your key
-          'X-RapidAPI-Host': 'apidojo-yahoo-finance-v1.p.rapidapi.com'
-        }
+          "X-RapidAPI-Host": apiHost,
+          "X-RapidAPI-Key": apiKey,
+        },
       });
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       return response.json();
     }
 
-    function transformToCandles(data) {
-      const result = data.chart.result[0];
+    function parseApiData(response) {
+      const result = response.chart.result[0];
       const timestamps = result.timestamp;
       const quote = result.indicators.quote[0];
-      return timestamps.map((t, i) => ({
-        time: t,
+
+      return timestamps.map((ts, i) => ({
+        time: new Date(ts * 1000).toISOString().slice(0, 10),
         open: quote.open[i],
         high: quote.high[i],
         low: quote.low[i],
-        close: quote.close[i]
-      })).filter(c => c.open != null);
+        close: quote.close[i],
+      }));
     }
 
-    async function drawChart() {
-      const ticker = 'AAPL';
-      const rawData = await fetchDailyData(ticker);
-      const candles = transformToCandles(rawData);
-
-      const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
+    function createLightThemeChart(data) {
+      const chart = createChart(document.getElementById('chartContainer'), {
         width: window.innerWidth,
-        height: 600,
+        height: window.innerHeight,
+        layout: {
+          backgroundColor: '#ffffff',
+          textColor: '#000000',
+        },
+        grid: {
+          vertLines: { color: '#e0e3eb' },
+          horzLines: { color: '#e0e3eb' },
+        },
+        crosshair: {
+          mode: CrosshairMode.Normal,
+        },
+        rightPriceScale: {
+          borderColor: '#cccccc',
+        },
         timeScale: {
+          borderColor: '#cccccc',
           timeVisible: true,
           secondsVisible: false,
-        }
+        },
       });
 
-      const candleSeries = chart.addCandlestickSeries();
-      candleSeries.setData(candles);
+      const candlestickSeries = chart.addCandlestickSeries({
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderVisible: true,
+        wickUpColor: '#26a69a',
+        wickDownColor: '#ef5350',
+      });
+
+      candlestickSeries.setData(data);
 
       window.addEventListener('resize', () => {
-        chart.applyOptions({ width: window.innerWidth });
+        chart.applyOptions({
+          width: window.innerWidth,
+          height: window.innerHeight,
+        });
       });
     }
 
-    drawChart().catch(e => {
-      document.getElementById('chartContainer').innerText = e.message;
-      console.error(e);
-    });
+    async function main() {
+      try {
+        const symbol = "AAPL";
+        const apiData = await fetchDailyData(symbol);
+        const chartData = parseApiData(apiData);
+        createLightThemeChart(chartData);
+      } catch (err) {
+        console.error('Error fetching or rendering data:', err);
+      }
+    }
+
+    main();
   </script>
 </body>
 </html>
