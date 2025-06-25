@@ -2,16 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Yahoo Finance Daily Chart - Lightweight Charts</title>
+  <title>Lightweight Chart with Watermark</title>
   <style>
     html, body, #chartContainer {
       margin: 0;
       padding: 0;
-      height: 100vh;
       width: 100vw;
+      height: 100vh;
       background-color: #fff;
-      font-family: "Trebuchet MS", Tahoma, Verdana, Arial, sans-serif;
-      color: #000;
+      font-family: Arial, sans-serif;
       position: relative;
     }
 
@@ -22,8 +21,8 @@
       transform: translate(-50%, -50%);
       font-size: 12vw;
       color: rgba(0, 0, 0, 0.05);
-      pointer-events: none;
       user-select: none;
+      pointer-events: none;
       z-index: 1;
       white-space: nowrap;
     }
@@ -34,6 +33,7 @@
     <div id="watermark">AAPL</div>
   </div>
 
+  <!-- Correct lightweight-charts build -->
   <script src="https://unpkg.com/lightweight-charts@3.9.1/dist/lightweight-charts.standalone.production.js"></script>
 
   <script>
@@ -72,7 +72,7 @@
       }));
     }
 
-    function createLightThemeChart(data, symbol) {
+    function createChart(data, symbol) {
       const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
         width: window.innerWidth,
         height: window.innerHeight,
@@ -81,8 +81,8 @@
           textColor: '#000000',
         },
         grid: {
-          vertLines: { color: 'rgba(224, 227, 235, 0.2)' },
-          horzLines: { color: 'rgba(224, 227, 235, 0.2)' },
+          vertLines: { color: 'rgba(224, 227, 235, 0.1)' },
+          horzLines: { color: 'rgba(224, 227, 235, 0.1)' },
         },
         crosshair: {
           mode: LightweightCharts.CrosshairMode.Normal,
@@ -122,7 +122,7 @@
         const symbol = "AAPL";
         const apiData = await fetchDailyData(symbol);
         const chartData = parseApiData(apiData);
-        createLightThemeChart(chartData, symbol);
+        createChart(chartData, symbol);
       } catch (err) {
         console.error('Error fetching or rendering data:', err);
       }
