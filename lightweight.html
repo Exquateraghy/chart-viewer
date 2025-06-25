@@ -12,13 +12,35 @@
       background-color: #fff;
       font-family: "Trebuchet MS", Tahoma, Verdana, Arial, sans-serif;
       color: #000;
+      position: relative;
+    }
+
+    #watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12vw;
+      color: rgba(0, 0, 0, 0.05);
+      pointer-events: none;
+      user-select: none;
+      z-index: 1;
+      white-space: nowrap;
+    }
+
+    #chartCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 2;
     }
   </style>
 </head>
 <body>
-  <div id="chartContainer"></div>
+  <div id="chartContainer">
+    <div id="watermark">AAPL</div>
+  </div>
 
-  <!-- Latest Stable Lightweight Charts (Global Access) -->
   <script src="https://unpkg.com/lightweight-charts@4.3.0/dist/lightweight-charts.js"></script>
 
   <script>
@@ -59,7 +81,7 @@
       }));
     }
 
-    function createLightThemeChart(data) {
+    function createLightThemeChart(data, symbol) {
       const chart = createChart(document.getElementById('chartContainer'), {
         width: window.innerWidth,
         height: window.innerHeight,
@@ -68,8 +90,8 @@
           textColor: '#000000',
         },
         grid: {
-          vertLines: { color: '#e0e3eb' },
-          horzLines: { color: '#e0e3eb' },
+          vertLines: { color: 'rgba(224, 227, 235, 0.2)' },
+          horzLines: { color: 'rgba(224, 227, 235, 0.2)' },
         },
         crosshair: {
           mode: CrosshairMode.Normal,
@@ -100,6 +122,9 @@
           height: window.innerHeight,
         });
       });
+
+      // Update watermark text
+      document.getElementById('watermark').innerText = symbol;
     }
 
     async function main() {
@@ -107,7 +132,7 @@
         const symbol = "AAPL";
         const apiData = await fetchDailyData(symbol);
         const chartData = parseApiData(apiData);
-        createLightThemeChart(chartData);
+        createLightThemeChart(chartData, symbol);
       } catch (err) {
         console.error('Error fetching or rendering data:', err);
       }
