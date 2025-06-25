@@ -27,13 +27,6 @@
       z-index: 1;
       white-space: nowrap;
     }
-
-    #chartCanvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 2;
-    }
   </style>
 </head>
 <body>
@@ -41,11 +34,9 @@
     <div id="watermark">AAPL</div>
   </div>
 
-  <script src="https://unpkg.com/lightweight-charts@4.3.0/dist/lightweight-charts.js"></script>
+  <script src="https://unpkg.com/lightweight-charts@3.9.1/dist/lightweight-charts.standalone.production.js"></script>
 
   <script>
-    const { createChart, CrosshairMode } = window.LightweightCharts;
-
     const apiHost = "apidojo-yahoo-finance-v1.p.rapidapi.com";
     const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";
 
@@ -82,7 +73,7 @@
     }
 
     function createLightThemeChart(data, symbol) {
-      const chart = createChart(document.getElementById('chartContainer'), {
+      const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
         width: window.innerWidth,
         height: window.innerHeight,
         layout: {
@@ -94,7 +85,7 @@
           horzLines: { color: 'rgba(224, 227, 235, 0.2)' },
         },
         crosshair: {
-          mode: CrosshairMode.Normal,
+          mode: LightweightCharts.CrosshairMode.Normal,
         },
         rightPriceScale: {
           borderColor: '#cccccc',
@@ -123,7 +114,6 @@
         });
       });
 
-      // Update watermark text
       document.getElementById('watermark').innerText = symbol;
     }
 
