@@ -2,40 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Lightweight Chart with Ticker Watermark</title>
+  <title>Yahoo Finance Daily Chart - Lightweight Charts</title>
   <style>
     html, body, #chartContainer {
       margin: 0;
       padding: 0;
-      width: 100vw;
       height: 100vh;
+      width: 100vw;
       background-color: #fff;
-      font-family: Arial, sans-serif;
-      position: relative;
-    }
-    #watermark {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 12vw;
-      color: rgba(0, 0, 0, 0.05);
-      user-select: none;
-      pointer-events: none;
-      z-index: 1;
-      white-space: nowrap;
+      font-family: "Trebuchet MS", Tahoma, Verdana, Arial, sans-serif;
+      color: #000;
     }
   </style>
 </head>
 <body>
-  <div id="chartContainer">
-    <div id="watermark">AAPL</div>
-  </div>
+  <div id="chartContainer"></div>
 
-  <!-- Correct standalone build for global LightweightCharts -->
-  <script src="https://unpkg.com/lightweight-charts@3.9.1/dist/lightweight-charts.standalone.production.js"></script>
+  <!-- Latest Stable Lightweight Charts (Global Access) -->
+  <script src="https://unpkg.com/lightweight-charts@4.3.0/dist/lightweight-charts.js"></script>
 
   <script>
+    const { createChart, CrosshairMode } = window.LightweightCharts;
+
     const apiHost = "apidojo-yahoo-finance-v1.p.rapidapi.com";
     const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";
 
@@ -71,8 +59,8 @@
       }));
     }
 
-    function createLightThemeChart(data, symbol) {
-      const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
+    function createLightThemeChart(data) {
+      const chart = createChart(document.getElementById('chartContainer'), {
         width: window.innerWidth,
         height: window.innerHeight,
         layout: {
@@ -80,11 +68,11 @@
           textColor: '#000000',
         },
         grid: {
-          vertLines: { color: 'rgba(224, 227, 235, 0.1)' },
-          horzLines: { color: 'rgba(224, 227, 235, 0.1)' },
+          vertLines: { color: '#e0e3eb' },
+          horzLines: { color: '#e0e3eb' },
         },
         crosshair: {
-          mode: LightweightCharts.CrosshairMode.Normal,
+          mode: CrosshairMode.Normal,
         },
         rightPriceScale: {
           borderColor: '#cccccc',
@@ -96,7 +84,7 @@
         },
       });
 
-      const series = chart.addCandlestickSeries({
+      const candlestickSeries = chart.addCandlestickSeries({
         upColor: '#26a69a',
         downColor: '#ef5350',
         borderVisible: true,
@@ -104,8 +92,7 @@
         wickDownColor: '#ef5350',
       });
 
-      series.setData(data);
-      document.getElementById('watermark').innerText = symbol;
+      candlestickSeries.setData(data);
 
       window.addEventListener('resize', () => {
         chart.applyOptions({
@@ -120,7 +107,7 @@
         const symbol = "AAPL";
         const apiData = await fetchDailyData(symbol);
         const chartData = parseApiData(apiData);
-        createLightThemeChart(chartData, symbol);
+        createLightThemeChart(chartData);
       } catch (err) {
         console.error('Error fetching or rendering data:', err);
       }
