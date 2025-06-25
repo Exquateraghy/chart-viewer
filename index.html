@@ -2,6 +2,22 @@
 <html>
 <head>
   <title>Stock Chart Viewer</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center; /* Horizontally centers the content */
+      align-items: center;     /* Vertically centers the content */
+      min-height: 100vh;      /* Ensures full viewport height */
+      box-sizing: border-box;
+    }
+    #chartContainer {
+      height: 600px;
+      width: 90%; /* Adjust width as needed (e.g., 80%, 90%, or fixed px) */
+      max-width: 1200px; /* Optional: Limits maximum width */
+    }
+  </style>
 </head>
 <body>
   <div id="chartContainer" style="height:600px;"></div>
