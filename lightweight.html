@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Lightweight Chart with Watermark</title>
+  <title>Lightweight Chart with Ticker Watermark</title>
   <style>
     html, body, #chartContainer {
       margin: 0;
@@ -13,7 +13,6 @@
       font-family: Arial, sans-serif;
       position: relative;
     }
-
     #watermark {
       position: absolute;
       top: 50%;
@@ -33,7 +32,7 @@
     <div id="watermark">AAPL</div>
   </div>
 
-  <!-- Correct lightweight-charts build -->
+  <!-- Correct standalone build for global LightweightCharts -->
   <script src="https://unpkg.com/lightweight-charts@3.9.1/dist/lightweight-charts.standalone.production.js"></script>
 
   <script>
@@ -72,7 +71,7 @@
       }));
     }
 
-    function createChart(data, symbol) {
+    function createLightThemeChart(data, symbol) {
       const chart = LightweightCharts.createChart(document.getElementById('chartContainer'), {
         width: window.innerWidth,
         height: window.innerHeight,
@@ -97,7 +96,7 @@
         },
       });
 
-      const candlestickSeries = chart.addCandlestickSeries({
+      const series = chart.addCandlestickSeries({
         upColor: '#26a69a',
         downColor: '#ef5350',
         borderVisible: true,
@@ -105,7 +104,8 @@
         wickDownColor: '#ef5350',
       });
 
-      candlestickSeries.setData(data);
+      series.setData(data);
+      document.getElementById('watermark').innerText = symbol;
 
       window.addEventListener('resize', () => {
         chart.applyOptions({
@@ -113,8 +113,6 @@
           height: window.innerHeight,
         });
       });
-
-      document.getElementById('watermark').innerText = symbol;
     }
 
     async function main() {
@@ -122,7 +120,7 @@
         const symbol = "AAPL";
         const apiData = await fetchDailyData(symbol);
         const chartData = parseApiData(apiData);
-        createChart(chartData, symbol);
+        createLightThemeChart(chartData, symbol);
       } catch (err) {
         console.error('Error fetching or rendering data:', err);
       }
