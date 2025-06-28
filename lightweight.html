@@ -18,8 +18,8 @@
 <body>
   <div id="chartContainer"></div>
 
-  <!-- Latest Stable Lightweight Charts (Global Access) -->
-  <script src="https://unpkg.com/lightweight-charts@4.3.0/dist/lightweight-charts.js"></script>
+  <!-- Correct global build -->
+  <script src="https://unpkg.com/lightweight-charts@4.3.0/dist/lightweight-charts.standalone.production.js"></script>
 
   <script>
     const { createChart, CrosshairMode } = window.LightweightCharts;
@@ -38,9 +38,7 @@
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       return response.json();
     }
@@ -63,42 +61,22 @@
       const chart = createChart(document.getElementById('chartContainer'), {
         width: window.innerWidth,
         height: window.innerHeight,
-        layout: {
-          backgroundColor: '#ffffff',
-          textColor: '#000000',
-        },
-        grid: {
-          vertLines: { color: '#e0e3eb' },
-          horzLines: { color: '#e0e3eb' },
-        },
-        crosshair: {
-          mode: CrosshairMode.Normal,
-        },
-        rightPriceScale: {
-          borderColor: '#cccccc',
-        },
-        timeScale: {
-          borderColor: '#cccccc',
-          timeVisible: true,
-          secondsVisible: false,
-        },
+        layout: { backgroundColor: '#ffffff', textColor: '#000000' },
+        grid: { vertLines: { color: '#e0e3eb' }, horzLines: { color: '#e0e3eb' } },
+        crosshair: { mode: CrosshairMode.Normal },
+        rightPriceScale: { borderColor: '#cccccc' },
+        timeScale: { borderColor: '#cccccc', timeVisible: true, secondsVisible: false },
       });
 
-      const candlestickSeries = chart.addCandlestickSeries({
-        upColor: '#26a69a',
-        downColor: '#ef5350',
-        borderVisible: true,
-        wickUpColor: '#26a69a',
-        wickDownColor: '#ef5350',
+      const series = chart.addCandlestickSeries({
+        upColor: '#26a69a', downColor: '#ef5350',
+        borderVisible: true, wickUpColor: '#26a69a', wickDownColor: '#ef5350',
       });
 
-      candlestickSeries.setData(data);
+      series.setData(data);
 
       window.addEventListener('resize', () => {
-        chart.applyOptions({
-          width: window.innerWidth,
-          height: window.innerHeight,
-        });
+        chart.applyOptions({ width: window.innerWidth, height: window.innerHeight });
       });
     }
 
