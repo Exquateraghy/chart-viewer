@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Yahoo Finance Daily Chart - Lightweight Charts</title>
+  <title>Yahoo Finance Daily Chart</title>
   <style>
     html, body, #chartContainer {
       margin: 0;
@@ -10,88 +10,33 @@
       height: 100vh;
       width: 100vw;
       background-color: #fff;
-      font-family: "Trebuchet MS", Tahoma, Verdana, Arial, sans-serif;
-      color: #000;
     }
   </style>
 </head>
 <body>
   <div id="chartContainer"></div>
 
-  <!-- Correct global build -->
+  <!-- Use the correct global build -->
   <script src="https://unpkg.com/lightweight-charts@4.3.0/dist/lightweight-charts.standalone.production.js"></script>
 
   <script>
     const { createChart, CrosshairMode } = window.LightweightCharts;
 
-    const apiHost = "apidojo-yahoo-finance-v1.p.rapidapi.com";
-    const apiKey = "b5fe46e312mshf5f3fc4311c126ap14ab3bjsnd574a52c11b4";
+    const chart = createChart(document.getElementById('chartContainer'), {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      layout: { backgroundColor: '#ffffff', textColor: '#000000' },
+      grid: { vertLines: { color: '#f0f3fa' }, horzLines: { color: '#f0f3fa' } },
+      crosshair: { mode: CrosshairMode.Normal },
+      rightPriceScale: { borderColor: '#cccccc' },
+      timeScale: { borderColor: '#cccccc', timeVisible: true },
+    });
 
-    async function fetchDailyData(symbol) {
-      const url = `https://${apiHost}/stock/v3/get-chart?symbol=${encodeURIComponent(symbol)}&interval=1d&range=12mo&region=US`;
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "X-RapidAPI-Host": apiHost,
-          "X-RapidAPI-Key": apiKey,
-        },
-      });
-
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-      return response.json();
-    }
-
-    function parseApiData(response) {
-      const result = response.chart.result[0];
-      const timestamps = result.timestamp;
-      const quote = result.indicators.quote[0];
-
-      return timestamps.map((ts, i) => ({
-        time: new Date(ts * 1000).toISOString().slice(0, 10),
-        open: quote.open[i],
-        high: quote.high[i],
-        low: quote.low[i],
-        close: quote.close[i],
-      }));
-    }
-
-    function createLightThemeChart(data) {
-      const chart = createChart(document.getElementById('chartContainer'), {
-        width: window.innerWidth,
-        height: window.innerHeight,
-        layout: { backgroundColor: '#ffffff', textColor: '#000000' },
-        grid: { vertLines: { color: '#e0e3eb' }, horzLines: { color: '#e0e3eb' } },
-        crosshair: { mode: CrosshairMode.Normal },
-        rightPriceScale: { borderColor: '#cccccc' },
-        timeScale: { borderColor: '#cccccc', timeVisible: true, secondsVisible: false },
-      });
-
-      const series = chart.addCandlestickSeries({
-        upColor: '#26a69a', downColor: '#ef5350',
-        borderVisible: true, wickUpColor: '#26a69a', wickDownColor: '#ef5350',
-      });
-
-      series.setData(data);
-
-      window.addEventListener('resize', () => {
-        chart.applyOptions({ width: window.innerWidth, height: window.innerHeight });
-      });
-    }
-
-    async function main() {
-      try {
-        const symbol = "AAPL";
-        const apiData = await fetchDailyData(symbol);
-        const chartData = parseApiData(apiData);
-        createLightThemeChart(chartData);
-      } catch (err) {
-        console.error('Error fetching or rendering data:', err);
-      }
-    }
-
-    main();
+    const candleSeries = chart.addCandlestickSeries();
+    candleSeries.setData([
+      { time: '2024-06-24', open: 150, high: 155, low: 149, close: 154 },
+      { time: '2024-06-25', open: 154, high: 158, low: 153, close: 157 },
+    ]);
   </script>
 </body>
 </html>
