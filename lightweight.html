@@ -113,8 +113,7 @@
       return { shortRSI, longRSI, maShort };
     }
 
-    const TELEGRAM_BOT_TOKEN = '7292044133:AAE9rxmIJ7WCGLLjP334Kl-SddbRAkJ8zCE';
-    const TELEGRAM_CHAT_ID = '1255019052';
+   
     function sendTelegramMessage(text) {
       fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
