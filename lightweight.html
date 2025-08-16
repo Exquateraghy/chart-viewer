@@ -2,41 +2,201 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Yahoo Finance Daily Chart</title>
+  <title>BX-Trender Chart - BTC</title>
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
   <style>
-    html, body, #chartContainer {
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      width: 100vw;
-      background-color: #fff;
-    }
+    body { margin: 0; display: flex; flex-direction: column; height: 100vh; background: #111; color: #ddd; font-family: sans-serif; }
+    #controls { padding: 10px; }
+    #chart-container { flex: 1; display: flex; flex-direction: column; }
+    #candles { flex: 1; }
+    #bx { flex: 0.5; }
+    select { padding: 4px; }
   </style>
 </head>
 <body>
-  <div id="chartContainer"></div>
+  <div id="controls">
+    Timeframe:
+    <select id="timeframe">
+      <option value="1h">1H</option>
+      <option value="2h">2H</option>
+      <option value="4h">4H</option>
+      <option value="1d" selected>1D</option>
+      <option value="1w">1W</option>
+    </select>
+  </div>
 
-  <!-- Use the correct global build -->
-  <script src="https://unpkg.com/lightweight-charts@4.3.0/dist/lightweight-charts.standalone.production.js"></script>
+  <div id="chart-container">
+    <div id="candles"></div>
+    <div id="bx"></div>
+  </div>
 
   <script>
-    const { createChart, CrosshairMode } = window.LightweightCharts;
-
-    const chart = createChart(document.getElementById('chartContainer'), {
-      width: window.innerWidth,
-      height: window.innerHeight,
-      layout: { backgroundColor: '#ffffff', textColor: '#000000' },
-      grid: { vertLines: { color: '#f0f3fa' }, horzLines: { color: '#f0f3fa' } },
-      crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: '#cccccc' },
-      timeScale: { borderColor: '#cccccc', timeVisible: true },
+    // ------------------------------
+    // Setup charts
+    // ------------------------------
+    const candleChart = LightweightCharts.createChart(document.getElementById('candles'), {
+      layout: { background: { color: '#111' }, textColor: '#ddd' },
+      grid: { vertLines: { color: '#222' }, horzLines: { color: '#222' } },
     });
+    const candleSeries = candleChart.addCandlestickSeries();
 
-    const candleSeries = chart.addCandlestickSeries();
-    candleSeries.setData([
-      { time: '2024-06-24', open: 150, high: 155, low: 149, close: 154 },
-      { time: '2024-06-25', open: 154, high: 158, low: 153, close: 157 },
-    ]);
+    const bxChart = LightweightCharts.createChart(document.getElementById('bx'), {
+      layout: { background: { color: '#111' }, textColor: '#ddd' },
+      grid: { vertLines: { color: '#222' }, horzLines: { color: '#222' } },
+      rightPriceScale: { visible: true },
+    });
+    const bxHist = bxChart.addHistogramSeries({ color: 'lime', priceScaleId: '' });
+    const bxLine = bxChart.addLineSeries({ color: 'red', lineWidth: 2 });
+
+    // ------------------------------
+    // BX-Trender helper functions
+    // ------------------------------
+    function ema(values, length) {
+      const k = 2 / (length + 1);
+      let emaArr = [];
+      let prev = values[0];
+      values.forEach((v, i) => {
+        if (i > 0) prev = v * k + prev * (1 - k);
+        emaArr.push(prev);
+      });
+      return emaArr;
+    }
+
+    function rsi(values, length) {
+      let gains = [], losses = [];
+      for (let i = 1; i < values.length; i++) {
+        let diff = values[i] - values[i - 1];
+        gains.push(Math.max(0, diff));
+        losses.push(Math.max(0, -diff));
+      }
+      let avgGain = gains.slice(0, length).reduce((a,b)=>a+b,0)/length;
+      let avgLoss = losses.slice(0, length).reduce((a,b)=>a+b,0)/length;
+      let rsis = Array(length).fill(50);
+      for (let i = length; i < gains.length; i++) {
+        avgGain = (avgGain*(length-1)+gains[i])/length;
+        avgLoss = (avgLoss*(length-1)+losses[i])/length;
+        let rs = avgLoss===0?100:avgGain/avgLoss;
+        rsis.push(100 - 100/(1+rs) - 50);
+      }
+      return rsis;
+    }
+
+    function t3(values, length) {
+      let e1 = ema(values, length);
+      let e2 = ema(e1, length);
+      let e3 = ema(e2, length);
+      let e4 = ema(e3, length);
+      let e5 = ema(e4, length);
+      let e6 = ema(e5, length);
+      const b = 0.7;
+      const c1 = -b*b*b;
+      const c2 = 3*b*b+3*b*b*b;
+      const c3 = -6*b*b-3*b-3*b*b*b;
+      const c4 = 1+3*b+b*b*b+3*b*b;
+      return e6.map((_,i)=>c1*e6[i]+c2*e5[i]+c3*e4[i]+c4*e3[i]);
+    }
+
+    function computeBX(closes) {
+      const short_l1=5, short_l2=20, short_l3=5;
+      const long_l1=20, long_l2=5;
+
+      const emaShort1 = ema(closes, short_l1);
+      const emaShort2 = ema(closes, short_l2);
+      const shortTerm = emaShort1.map((v,i)=>v - emaShort2[i]);
+      const shortRSI = rsi(shortTerm, short_l3);
+
+      const emaLong1 = ema(closes, long_l1);
+      const longRSI = rsi(emaLong1, long_l2);
+
+      const maShort = t3(shortRSI,5);
+
+      return { shortRSI, longRSI, maShort };
+    }
+
+    const TELEGRAM_BOT_TOKEN = '7292044133:AAE9rxmIJ7WCGLLjP334Kl-SddbRAkJ8zCE';
+    const TELEGRAM_CHAT_ID = '1255019052';
+    function sendTelegramMessage(text) {
+      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: text
+        })
+      });
+    }
+
+    // ------------------------------
+    // Load Binance historical BTC data
+    // ------------------------------
+    async function loadData(timeframe) {
+      const tfMap = { '1m':'1m', '5m':'5m', '15m':'15m', '1h':'1h', '2h':'2h', '4h':'4h', '1d':'1d', '1w':'1w' };
+      const interval = tfMap[timeframe] || '1d';
+      const limit = interval === '1w' ? 104 : 500; // more data for weekly
+      const url = `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${interval}&limit=${limit}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      const candles = data.map(d => ({
+        time: d[0]/1000,
+        open: parseFloat(d[1]),
+        high: parseFloat(d[2]),
+        low: parseFloat(d[3]),
+        close: parseFloat(d[4])
+      }));
+
+      candleSeries.setData(candles);
+
+      const closes = candles.map(c=>c.close);
+      const { shortRSI, maShort } = computeBX(closes);
+
+      // BX histogram colors based on positive/negative
+      const histData = shortRSI.map((v,i)=>({ time: candles[i].time, value: v, color: v>=0 ? 'lime' : 'red' }));
+      const lineData = maShort.map((v,i)=>({ time: candles[i].time, value: v }));
+
+      bxHist.setData(histData);
+      bxLine.setData(lineData);
+
+      // ---- ADD RED CLOSE MARKERS ----
+      let markers = [];
+      let prevPositive = shortRSI[0] >= 0; // start with first candle
+      for (let i = 1; i < shortRSI.length; i++) {
+        const currentPositive = shortRSI[i] >= 0;
+
+        if (!currentPositive && prevPositive) {
+          // BX flipped from positive -> negative → first red
+          markers.push({
+            time: candles[i].time,
+            position: 'aboveBar',
+            color: 'red',
+            shape: 'arrowDown',
+            text: 'BX RED'
+          });
+          sendTelegramMessage(`BX-Trender flipped RED at ${new Date(candles[i].time*1000).toUTCString()}`);
+        } else if (currentPositive && !prevPositive) {
+          // BX flipped from negative -> positive → first green
+          markers.push({
+            time: candles[i].time,
+            position: 'belowBar',
+            color: 'lime',
+            shape: 'arrowUp',
+            text: 'BX GREEN'
+          });
+          sendTelegramMessage(`BX-Trender flipped GREEN at ${new Date(candles[i].time*1000).toUTCString()}`);
+        }
+
+        prevPositive = currentPositive;
+      }
+      candleSeries.setMarkers(markers);
+    }
+
+    // Initial load
+    loadData('1d');
+
+    // Timeframe selector
+    document.getElementById('timeframe').addEventListener('change', e=>{
+      loadData(e.target.value);
+    });
   </script>
 </body>
 </html>
